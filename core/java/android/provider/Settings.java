@@ -4496,6 +4496,9 @@ public final class Settings {
          */
         public static final String PULSE_LAVALAMP_SOLID_SPEED = "lava_lamp_solid_speed";
 
+        /** @hide */
+        public static final String IGNORE_RSSNR = "ignore_rssnr";        
+
         /**
          * Pulse Solid units count
          * @hide
