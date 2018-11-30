@@ -4955,6 +4955,17 @@ public final class Settings {
         public static final String SWITCH_STYLE = "switch_style";
 
         /**
+         * Settings dashboard icon style
+         * @hide
+         */
+        public static final String THEMING_SETTINGS_DASHBOARD_ICONS =
+                "theming_settings_dashboard_icons";
+
+        /** @hide */
+        public static final Validator THEMING_SETTINGS_DASHBOARD_ICONS_VALIDATOR =
+                ANY_INTEGER_VALIDATOR;
+
+        /**
          * Settings to backup. This is here so that it's in the same place as the settings
          * keys and easy to update.
          *
@@ -5022,6 +5033,7 @@ public final class Settings {
             NOTIFICATION_LIGHT_PULSE,
 			NOTIFICATION_SOUND_VIB_SCREEN_ON,
             MUTE_ANNOYING_NOTIFICATIONS_THRESHOLD
+            THEMING_SETTINGS_DASHBOARD_ICONS,
         };
 
         /**
@@ -5160,6 +5172,7 @@ public final class Settings {
             PRIVATE_SETTINGS.add(BUTTON_BACKLIGHT_ON_TOUCH_ONLY);
 			PRIVATE_SETTINGS.add(NOTIFICATION_SOUND_VIB_SCREEN_ON);
             PRIVATE_SETTINGS.add(MUTE_ANNOYING_NOTIFICATIONS_THRESHOLD);
+            PRIVATE_SETTINGS.add(THEMING_SETTINGS_DASHBOARD_ICONS);
         }
 
         /**
@@ -5264,6 +5277,7 @@ public final class Settings {
             VALIDATORS.put(NOTIFICATION_LIGHT_PULSE, BOOLEAN_VALIDATOR);
 			VALIDATORS.put(NOTIFICATION_SOUND_VIB_SCREEN_ON, NOTIFICATION_SOUND_VIB_SCREEN_ON_VALIDATOR);
             VALIDATORS.put(MUTE_ANNOYING_NOTIFICATIONS_THRESHOLD, MUTE_ANNOYING_NOTIFICATIONS_THRESHOLD_VALIDATOR);
+            VALIDATORS.put(THEMING_SETTINGS_DASHBOARD_ICONS, THEMING_SETTINGS_DASHBOARD_ICONS_VALIDATOR);
         }
 
         /**
