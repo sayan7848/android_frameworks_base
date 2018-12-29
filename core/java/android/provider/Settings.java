@@ -4951,6 +4951,11 @@ public final class Settings {
          */
         public static final String DIALER_OPENCNAM_AUTH_TOKEN = "dialer_opencnam_auth_token";
 
+        
+        /**
+         * @hide
+         */
+        public static final String SWITCH_STYLE = "switch_style";
 
         /**
          * Settings to backup. This is here so that it's in the same place as the settings
@@ -13189,6 +13194,8 @@ public final class Settings {
         public static final String MAX_SOUND_TRIGGER_DETECTION_SERVICE_OPS_PER_DAY =
                 "max_sound_trigger_detection_service_ops_per_day";
 
+        
+        
         /**
          * Settings to backup. This is here so that it's in the same place as the settings
          * keys and easy to update.
