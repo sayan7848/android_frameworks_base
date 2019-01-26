@@ -2204,8 +2204,7 @@ public class ConnectivityService extends IConnectivityManager.Stub
                     break;
                 }
                 case NetworkAgent.EVENT_NETWORK_SCORE_CHANGED: {
-                    Integer score = (Integer) msg.obj;
-                    if (score != null) updateNetworkScore(nai, score.intValue());
+                    updateNetworkScore(nai, msg.arg1);
                     break;
                 }
                 case NetworkAgent.EVENT_SET_EXPLICITLY_SELECTED: {
@@ -2652,8 +2651,9 @@ public class ConnectivityService extends IConnectivityManager.Stub
                     // 2. Unvalidated WiFi will not be reaped when validated cellular
                     //    is currently satisfying the request.  This is desirable when
                     //    WiFi ends up validating and out scoring cellular.
-                    getNetworkForRequest(nri.request.requestId).getCurrentScore() <
-                            nai.getCurrentScoreAsValidated())) {
+                    ((getNetworkForRequest(nri.request.requestId) != null)
+                    && (getNetworkForRequest(nri.request.requestId).getCurrentScore() <
+                            nai.getCurrentScoreAsValidated())))) {
                 return false;
             }
         }

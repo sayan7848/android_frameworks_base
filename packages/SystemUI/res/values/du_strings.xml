@@ -118,4 +118,10 @@
     <string name="navigation_bar_height_tablets_landscape_title">Height (landscape)</string>
     <string name="navigation_bar_width_title">Width</string>
 
+    <!-- Sound QS Tile -->
+    <string name="quick_settings_sound_label">Sound</string>
+    <string name="quick_settings_sound_ring">Ring</string>
+    <string name="quick_settings_sound_vibrate">Vibrate</string>
+    <string name="quick_settings_sound_dnd">Do not disturb</string>
+
 </resources>
