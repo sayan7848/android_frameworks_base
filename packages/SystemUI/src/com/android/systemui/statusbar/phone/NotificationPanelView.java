@@ -143,7 +143,6 @@ public class NotificationPanelView extends PanelView implements
     private VelocityTracker mQsVelocityTracker;
     private boolean mQsTracking;
 
-    private GestureDetector mLockscreenDoubleTapToSleep;
     private boolean mIsLockscreenDoubleTapEnabled;
 
     /**
@@ -318,7 +317,6 @@ public class NotificationPanelView extends PanelView implements
         setAccessibilityPaneTitle(determineAccessibilityPaneTitle());
         mAlphaPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.MULTIPLY));
         setPanelAlpha(255, false /* animate */);
-        mLockscreenDoubleTapToSleep = new GestureDetector(context,
         mDoubleTapToSleepGesture = new GestureDetector(context,
                 new GestureDetector.SimpleOnGestureListener() {
             @Override
