@@ -493,11 +493,6 @@ public class KeyguardStatusView extends GridLayout implements
                 mCustomClockView.setVisibility(View.GONE);
                 mDuClockView.setVisibility(View.GONE);
                 break;
-            case 5: // sammy accent
-                mClockView.setVisibility(mDarkAmount != 1 ? (mShowClock ? View.VISIBLE :
-                       View.GONE) : View.VISIBLE);
-                mCustomClockView.setVisibility(View.GONE);
-                break;
             case 6: // sammy accent
                 mClockView.setVisibility(mDarkAmount != 1 ? (mShowClock ? View.VISIBLE :
                        View.GONE) : View.VISIBLE);
@@ -547,12 +542,6 @@ public class KeyguardStatusView extends GridLayout implements
                 params.addRule(RelativeLayout.BELOW, R.id.clock_view);
                 mClockView.setSingleLine(false);
                 mClockView.setGravity(Gravity.CENTER);
-                break;
-            case 5: // sammy accent
-                params.addRule(RelativeLayout.BELOW, R.id.clock_view);
-                mClockView.setSingleLine(false);
-                mClockView.setGravity(Gravity.CENTER);
-                mClockView.setLineSpacing(0, 0.8f);
                 break;
             case 6: // sammy accent
                 params.addRule(RelativeLayout.BELOW, R.id.clock_view);
