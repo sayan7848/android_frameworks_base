@@ -1921,7 +1921,7 @@ public class StatusBar extends SystemUI implements DemoMode,
         flagdbg.append(0 != ((state2 & StatusBarManager.DISABLE2_NOTIFICATION_SHADE))   ? 'N' : 'n');
         flagdbg.append(0 != ((diff2  & StatusBarManager.DISABLE2_NOTIFICATION_SHADE))   ? '!' : ' ');
         flagdbg.append('>');
-        Log.d(TAG, flagdbg.toString());
+        if (DEBUG) Log.d(TAG, flagdbg.toString());
 
         if ((diff1 & StatusBarManager.DISABLE_EXPAND) != 0) {
             if ((state1 & StatusBarManager.DISABLE_EXPAND) != 0) {
@@ -4094,6 +4094,12 @@ public class StatusBar extends SystemUI implements DemoMode,
         mKeyguardIndicationController.setDozing(mDozing);
         mNotificationPanel.setDozing(mDozing, animate);
         updateQsExpansionEnabled();
+
+        if (isAmbientContainerAvailable()) {
+            ((AmbientIndicationContainer)mAmbientIndicationContainer)
+                    .updateDozingState(mDozing);
+        }
+
         Trace.endSection();
     }
 
@@ -5419,15 +5425,14 @@ public class StatusBar extends SystemUI implements DemoMode,
                 Settings.System.FORCE_AMBIENT_FOR_MEDIA, 1,
                 UserHandle.USER_CURRENT) != 0;
         if (isAmbientContainerAvailable()) {
-            ((AmbientIndicationContainer)mAmbientIndicationContainer).setIndication(
-                    mMediaManager.getMediaMetadata(), null, false);
+            ((AmbientIndicationContainer)mAmbientIndicationContainer).setIndication(null, false);
         }
     }
 
-    public void setAmbientMusicInfo(MediaMetadata mediaMetadata, String notificationText, boolean nowPlaying) {
+    public void setAmbientMusicInfo(String notificationText, boolean nowPlaying) {
         if (isAmbientContainerAvailable()) {
             ((AmbientIndicationContainer)mAmbientIndicationContainer).setIndication(
-                    mediaMetadata, notificationText, nowPlaying);
+                    notificationText, nowPlaying);
         }
     }
 
