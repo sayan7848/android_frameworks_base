@@ -5321,6 +5321,9 @@ public class StatusBar extends SystemUI implements DemoMode,
             resolver.registerContentObserver(Settings.Secure.getUriFor(
                     Settings.Secure.KEYGUARD_MULTIUSER_SWITCH),
                     false, this, UserHandle.USER_ALL);
+						resolver.registerContentObserver(Settings.System.getUriFor(
+                    Settings.System.DOUBLE_TAP_SLEEP_GESTURE),
+                    false, this, UserHandle.USER_ALL);
         }
 
         @Override
@@ -5362,6 +5365,9 @@ public class StatusBar extends SystemUI implements DemoMode,
                 updateKeyguardStatusSettings();
             } else if (uri.equals(Settings.Secure.getUriFor(Settings.Secure.KEYGUARD_MULTIUSER_SWITCH))) {
                 updateKeyguardStatusBarSettings();
+            }	else if (uri.equals(Settings.System.getUriFor(
+                    Settings.System.DOUBLE_TAP_SLEEP_GESTURE))) {
+                		setStatusBarWindowViewOptions();
             }
         }
 
