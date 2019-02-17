@@ -62,7 +62,6 @@ import com.android.systemui.statusbar.policy.UserInfoController;
 import com.android.systemui.statusbar.policy.UserInfoController.OnUserInfoChangedListener;
 import com.android.systemui.statusbar.policy.UserInfoControllerImpl;
 import com.android.systemui.statusbar.policy.UserSwitcherController;
-import com.android.systemui.tuner.TunerService;
 
 /**
  * The header group on Keyguard.
@@ -103,9 +102,6 @@ public class KeyguardStatusBarView extends RelativeLayout
     private int mLayoutState = LAYOUT_NONE;
 
     private boolean mMultiSwitchEnabled;
-    
-    // tuner switch
-    private static final String KEYGUARD_SHOW_PERCENT_ON_CHARGING = "sysui_keyguard_battery_percent";
 
     /**
      * Draw this many pixels into the left/right side of the cutout to optimally use the space
@@ -229,11 +225,7 @@ public class KeyguardStatusBarView extends RelativeLayout
         } else {
             mMultiUserSwitch.setVisibility(View.GONE);
         }
-
-        final boolean showPercentOnCharging = Dependency.get(TunerService.class)
-                .getValue(KEYGUARD_SHOW_PERCENT_ON_CHARGING, 1) == 1;
-
-        mBatteryView.setForceShowPercent(showPercentOnCharging && mBatteryCharging && mShowPercentAvailable);
+        mBatteryView.setForceShowPercent(mBatteryCharging && mShowPercentAvailable);
 
         if (mCarrierLabel != null) {
             if (mShowCarrierLabel == 1 || mShowCarrierLabel == 3) {
