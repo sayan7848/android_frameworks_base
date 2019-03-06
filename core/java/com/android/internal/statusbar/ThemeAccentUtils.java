@@ -84,6 +84,13 @@ public class ThemeAccentUtils {
         "com.accents.userfive", // 26
         "com.accents.usersix", // 27
         "com.accents.userseven", // 28
+        "com.accents.nblue", // 29
+        "com.accents.nbrown", // 30
+        "com.accents.ngreen", // 31
+        "com.accents.norange", // 32
+        "com.accents.npink", // 33
+        "com.accents.npurple", // 34
+        "com.accents.nred", // 35
     };
 
     private static final String[] QS_TILE_THEMES = {
@@ -92,6 +99,9 @@ public class ThemeAccentUtils {
         "com.android.systemui.qstile.roundedsquare", // 2
         "com.android.systemui.qstile.squircle", // 3
         "com.android.systemui.qstile.teardrop", // 4
+        "com.android.systemui.qstile.circlegradient", //5
+        "com.android.systemui.qstile.circleoutline", //6
+        "com.android.systemui.qstile.justicons", //7
     };
 
     // Unloads the stock dark theme
