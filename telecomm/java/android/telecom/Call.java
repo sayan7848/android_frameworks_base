@@ -360,18 +360,7 @@ public final class Call {
 
         /** Call supports the deflect feature. */
         public static final int CAPABILITY_SUPPORT_DEFLECT = 0x01000000;
-        /**
-         * Add participant in an active or conference call option
-         * @hide
-         */
-        public static final int CAPABILITY_ADD_PARTICIPANT = 0x02000000;
 
-        /**
-         * Remote device supports RTT.
-         * @hide
-         */
-
-        public static final int CAPABILITY_SUPPORTS_RTT_REMOTE = 0x04000000;
 
         /**
          * Remote device supports RTT.
