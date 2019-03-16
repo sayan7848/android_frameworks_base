@@ -32,6 +32,7 @@ import static android.view.View.VISIBLE;
 import static com.android.systemui.volume.Events.DISMISS_REASON_SETTINGS_CLICKED;
 
 import android.accessibilityservice.AccessibilityServiceInfo;
+
 import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
 import android.app.Dialog;
@@ -44,6 +45,7 @@ import android.content.res.ColorStateList;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
+import android.database.ContentObserver;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.graphics.PorterDuff;
@@ -55,6 +57,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.os.SystemClock;
+import android.os.UserHandle;
 import android.os.VibrationEffect;
 import android.provider.Settings;
 import android.provider.Settings.Global;
@@ -155,6 +158,46 @@ public class VolumeDialogImpl implements VolumeDialog {
 
     private boolean mLeftVolumeRocker;
 
+    private boolean mIsNotificationShowing = false;
+    private boolean mIsVoiceShowing = false;
+    private boolean mIsBTSCOShowing = false;
+
+
+    private class ExtraVolumeStreamsObserver extends ContentObserver {
+        ExtraVolumeStreamsObserver(Handler handler) {
+            super(handler);
+        }
+
+        void observe() {
+            mContext.getContentResolver().
+					registerContentObserver(Settings.System.getUriFor(Settings.System.AUDIO_PANEL_VIEW_NOTIFICATION), 
+                                            false, this, UserHandle.USER_ALL);
+            mContext.getContentResolver().
+					registerContentObserver(Settings.System.getUriFor(Settings.System.AUDIO_PANEL_VIEW_VOICE), 
+                                            false, this, UserHandle.USER_ALL);
+            mContext.getContentResolver().
+					registerContentObserver(Settings.System.getUriFor(Settings.System.AUDIO_PANEL_VIEW_BT_SCO), 
+											false, this, UserHandle.USER_ALL);
+            update();
+        }
+
+        @Override
+        public void onChange(boolean selfChange) {
+            update();
+        }
+
+        public void update() {
+             mIsNotificationShowing = Settings.System.getIntForUser(mContext.getContentResolver(), 
+										Settings.System.AUDIO_PANEL_VIEW_NOTIFICATION, 0, UserHandle.USER_CURRENT) == 1;
+             mIsVoiceShowing = Settings.System.getIntForUser(mContext.getContentResolver(), 
+										Settings.System.AUDIO_PANEL_VIEW_VOICE, 0, UserHandle.USER_CURRENT) == 1;
+             mIsBTSCOShowing = Settings.System.getIntForUser(mContext.getContentResolver(), 
+                                        Settings.System.AUDIO_PANEL_VIEW_VOICE, 0, UserHandle.USER_CURRENT) == 1;
+        }
+    }
+
+    private ExtraVolumeStreamsObserver mExtraVolumeStreamsObserver;
+    
     public VolumeDialogImpl(Context context) {
         mContext = new ContextThemeWrapper(context, com.android.systemui.R.style.qs_theme);
         mController = Dependency.get(VolumeDialogController.class);
@@ -291,6 +334,9 @@ public class VolumeDialogImpl implements VolumeDialog {
         updateRowsH(getActiveRow());
         initRingerH();
         initSettingsH();
+        
+        mExtraVolumeStreamsObserver = new ExtraVolumeStreamsObserver(mHandler);
+        mExtraVolumeStreamsObserver.observe();	
     }
 
     protected ViewGroup getDialogView() {
@@ -457,7 +503,10 @@ public class VolumeDialogImpl implements VolumeDialog {
         for(int i = mRows.size() - 1; i >= 0; i--) {
             final VolumeRow row = mRows.get(i);
             if ((row.stream == AudioManager.STREAM_RING ||
-                    row.stream == AudioManager.STREAM_ALARM) && row.stream != mActiveStream) {
+                    row.stream == AudioManager.STREAM_ALARM ||
+                    row.stream == AudioManager.STREAM_NOTIFICATION ||
+                    row.stream == AudioManager.STREAM_VOICE_CALL ||
+                    row.stream == AudioManager.STREAM_BLUETOOTH_SCO) && row.stream != mActiveStream) {
                 Util.setVisOrGone(row.view, /* vis */ false);
             }
         }
@@ -479,7 +528,10 @@ public class VolumeDialogImpl implements VolumeDialog {
         // to our "hardcoded" extra elements.
         int watchAllyStream;
         if (mActiveStream != AudioManager.STREAM_RING
-                || mActiveStream != AudioManager.STREAM_ALARM) {
+                || mActiveStream != AudioManager.STREAM_ALARM
+                || mActiveStream != AudioManager.STREAM_NOTIFICATION
+                || mActiveStream != AudioManager.STREAM_VOICE_CALL
+                || mActiveStream != AudioManager.STREAM_BLUETOOTH_SCO) {
             watchAllyStream = mActiveStream;
         } else {
             watchAllyStream = -1;
@@ -487,22 +539,34 @@ public class VolumeDialogImpl implements VolumeDialog {
 
         mExpandRows.setOnClickListener(v -> {
             if(!mExpanded) {
-                VolumeRow row = findRow(AudioManager.STREAM_RING);
-                if (row != null) {
-                    Util.setVisOrGone(row.view, /* vis */ true);
-                    updateVolumeRowTintH(row,
-                            /* isActive */ row.stream == mActiveStream);
+                ArrayList<VolumeRow> volumeRows = new ArrayList<VolumeRow>();
+                if (mIsVoiceShowing)
+                    volumeRows.add(findRow(AudioManager.STREAM_VOICE_CALL));
+                
+                volumeRows.add(findRow(AudioManager.STREAM_RING));
+                
+                if (mIsNotificationShowing)
+                    volumeRows.add(findRow(AudioManager.STREAM_NOTIFICATION));
+                    
+                volumeRows.add(findRow(AudioManager.STREAM_ALARM));
+                
+                if (mIsBTSCOShowing) 
+                    volumeRows.add(findRow(AudioManager.STREAM_BLUETOOTH_SCO));
+                
+                
+
+                for (VolumeRow row : volumeRows) {
+                    if (row != null) {
+                        Util.setVisOrGone(row.view, /* vis */ true);
+                        updateVolumeRowTintH(row,
+                                /* isActive */ row.stream == mActiveStream);
+                    }
                 }
-                row = findRow(AudioManager.STREAM_ALARM);
-                if (row != null) {
-                    Util.setVisOrGone(row.view, /* vis */ true);
-                    updateVolumeRowTintH(row,
-                            /* isActive */ row.stream == mActiveStream);
-                }
+                
                 // Track ally stream, basically whatever is active next
                 // to the default one (media stream). e.g call stream.
                 if (watchAllyStream != -1) {
-                    row = findRow(watchAllyStream);
+                    VolumeRow row = findRow(watchAllyStream);
                     if (row != null) {
                         Util.setVisOrGone(row.view, /* vis */ true);
                         updateVolumeRowTintH(row,
