@@ -361,6 +361,7 @@ public final class Call {
         /** Call supports the deflect feature. */
         public static final int CAPABILITY_SUPPORT_DEFLECT = 0x01000000;
 
+
         /**
          * Remote device supports RTT.
          * @hide
@@ -556,6 +557,12 @@ public final class Call {
             }
             if (can(capabilities, CAPABILITY_SUPPORT_DEFLECT)) {
                 builder.append(" CAPABILITY_SUPPORT_DEFLECT");
+	    }
+            if (can(capabilities, CAPABILITY_ADD_PARTICIPANT)) {
+                builder.append(" CAPABILITY_ADD_PARTICIPANT");
+            }
+            if (can(capabilities, CAPABILITY_SUPPORTS_RTT_REMOTE)) {
+                builder.append(" CAPABILITY_SUPPORTS_RTT_REMOTE");
             }
             if (can(capabilities, CAPABILITY_SUPPORTS_RTT_REMOTE)) {
                 builder.append(" CAPABILITY_SUPPORTS_RTT_REMOTE");

@@ -16,9 +16,12 @@
 
 package android.telephony;
 
+import android.content.ContentResolver;
 import android.os.Bundle;
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.os.UserHandle;
+import android.provider.Settings;
 import android.telephony.CarrierConfigManager;
 import android.util.Log;
 import android.content.res.Resources;
@@ -583,8 +586,13 @@ public class SignalStrength implements Parcelable {
      *     0 represents very poor signal strength
      *     while 4 represents a very strong signal strength.
      */
+
     public int getLevel() {
-        int level = mIsGsm ? getGsmRelatedSignalStrength() : getCdmaRelatedSignalStrength();
+        return getLevel(false);
+    }
+
+    public int getLevel(boolean ignoreRSSNR) {
+        int level = mIsGsm ? getGsmRelatedSignalStrength(ignoreRSSNR) : getCdmaRelatedSignalStrength();
         if (DBG) log("getLevel=" + level);
         return level;
     }
@@ -844,7 +852,17 @@ public class SignalStrength implements Parcelable {
      *
      * @hide
      */
-    public int getLteLevel() {
+
+    public int getLteLevel(){
+        return getLteLevel(false);
+    }
+
+    /**
+     * Get LTE as level 0..4
+     *
+     * @hide
+     */
+    public int getLteLevel(boolean ignoreRSSNR) {
         /*
          * TS 36.214 Physical Layer Section 5.1.3
          * TS 36.331 RRC
@@ -854,6 +872,7 @@ public class SignalStrength implements Parcelable {
          * RSRQ = quality of signal dB = Number of Resource blocks*RSRP/RSSI
          * SNR = gain = signal/noise ratio = -10log P1/P2 dB
          */
+        int rsrqIconLevel = -1;
         int rssiIconLevel = SIGNAL_STRENGTH_NONE_OR_UNKNOWN, rsrpIconLevel = -1, snrIconLevel = -1;
 
         if (mLteRsrp > MAX_LTE_RSRP || mLteRsrp < MIN_LTE_RSRP) {
@@ -879,37 +898,77 @@ public class SignalStrength implements Parcelable {
             }
         }
 
-        /*
-         * Values are -200 dB to +300 (SNR*10dB) RS_SNR >= 13.0 dB =>4 bars 4.5
-         * dB <= RS_SNR < 13.0 dB => 3 bars 1.0 dB <= RS_SNR < 4.5 dB => 2 bars
-         * -3.0 dB <= RS_SNR < 1.0 dB 1 bar RS_SNR < -3.0 dB/No Service Antenna
-         * Icon Only
-         */
-        if (mLteRssnr > 300) snrIconLevel = -1;
-        else if (mLteRssnr >= 130) snrIconLevel = SIGNAL_STRENGTH_GREAT;
-        else if (mLteRssnr >= 45) snrIconLevel = SIGNAL_STRENGTH_GOOD;
-        else if (mLteRssnr >= 10) snrIconLevel = SIGNAL_STRENGTH_MODERATE;
-        else if (mLteRssnr >= -30) snrIconLevel = SIGNAL_STRENGTH_POOR;
-        else if (mLteRssnr >= -200)
-            snrIconLevel = SIGNAL_STRENGTH_NONE_OR_UNKNOWN;
-
-        if (DBG) log("getLTELevel - rsrp:" + mLteRsrp + " snr:" + mLteRssnr + " rsrpIconLevel:"
-                + rsrpIconLevel + " snrIconLevel:" + snrIconLevel
-                + " lteRsrpBoost:" + mLteRsrpBoost);
-
-        /* Choose a measurement type to use for notification */
-        if (snrIconLevel != -1 && rsrpIconLevel != -1) {
+        int secondMetricType = Resources.getSystem().getInteger(com.android.internal.R.integer.config_LTE_antenna_bar_quantity_metric);
+        if (secondMetricType == 0){
             /*
-             * The number of bars displayed shall be the smaller of the bars
-             * associated with LTE RSRP and the bars associated with the LTE
-             * RS_SNR
+             * Values are -200 dB to +300 (SNR*10dB) RS_SNR >= 13.0 dB =>4 bars 4.5
+             * dB <= RS_SNR < 13.0 dB => 3 bars 1.0 dB <= RS_SNR < 4.5 dB => 2 bars
+             * -3.0 dB <= RS_SNR < 1.0 dB 1 bar RS_SNR < -3.0 dB/No Service Antenna
+             * Icon Only
              */
-            return (rsrpIconLevel < snrIconLevel ? rsrpIconLevel : snrIconLevel);
-        }
+            if (mLteRssnr > 300) snrIconLevel = -1;
+            else if (mLteRssnr >= 130) snrIconLevel = SIGNAL_STRENGTH_GREAT;
+            else if (mLteRssnr >= 45) snrIconLevel = SIGNAL_STRENGTH_GOOD;
+            else if (mLteRssnr >= 10) snrIconLevel = SIGNAL_STRENGTH_MODERATE;
+            else if (mLteRssnr >= -30) snrIconLevel = SIGNAL_STRENGTH_POOR;
+            else if (mLteRssnr >= -200)
+                snrIconLevel = SIGNAL_STRENGTH_NONE_OR_UNKNOWN;
 
-        if (snrIconLevel != -1) return snrIconLevel;
+            if (DBG) log("getLTELevel - rsrp:" + mLteRsrp + " snr:" + mLteRssnr + " rsrpIconLevel:"
+                    + rsrpIconLevel + " snrIconLevel:" + snrIconLevel
+                    + " lteRsrpBoost:" + mLteRsrpBoost);
 
-        if (rsrpIconLevel != -1) return rsrpIconLevel;
+            //boolean ignoreRSSNR = Settings.System.getIntForUser(getContentResolver(), Settings.System.IGNORE_RSSNR, 0, UserHandle.USER_CURRENT) == 1;
+
+            /* Ignore RSSNR for now */
+            if(ignoreRSSNR && rsrpIconLevel != -1) return rsrpIconLevel;
+
+            /* Choose a measurement type to use for notification */
+            if (snrIconLevel != -1 && rsrpIconLevel != -1) {
+                /*
+                 * The number of bars displayed shall be the smaller of the bars
+                 * associated with LTE RSRP and the bars associated with the LTE
+                 * RS_SNR
+                 */
+                return (rsrpIconLevel < snrIconLevel ? rsrpIconLevel : snrIconLevel);
+            }
+
+            if (snrIconLevel != -1) return snrIconLevel;
+
+            if (rsrpIconLevel != -1) return rsrpIconLevel;
+       }
+       else if (secondMetricType == 1){
+            /*
+             * Values are -34 dB to -3dB RSRQ >= -12dB =>4 bars -14
+             * dB <= RSRQ < -12 dB => 3 bars -17 dB <= RSRQ < -14 dB => 2 bars
+             * -19 dB <= RSRQ < -17 dB 1 bar RS_SNR < -34 dB/No Service Antenna
+             * Icon Only
+             */
+            if (mLteRsrq > -3) rsrqIconLevel = -1;
+            else if (mLteRsrq >=  -12) rsrqIconLevel = SIGNAL_STRENGTH_GREAT;
+            else if (mLteRsrq >=  -14) rsrqIconLevel = SIGNAL_STRENGTH_GOOD;
+            else if (mLteRsrq >=  -17) rsrqIconLevel = SIGNAL_STRENGTH_MODERATE;
+            else if (mLteRsrq >=  -19) rsrqIconLevel = SIGNAL_STRENGTH_POOR;
+            else if (mLteRsrq >=  -34)
+                rsrqIconLevel = SIGNAL_STRENGTH_NONE_OR_UNKNOWN;
+
+            if (DBG) log("getLTELevel - rsrp:" + mLteRsrp + " rsrq:" + mLteRsrq + " rsrpIconLevel:"
+                    + rsrpIconLevel + " rsrqIconLevel:" + rsrqIconLevel);
+
+            /* Choose a measurement type to use for notification */
+            if (rsrqIconLevel != -1 && rsrpIconLevel != -1) {
+                /*
+                 * The number of bars displayed shall be the smaller of the bars
+                 * associated with LTE RSRP and the bars associated with the LTE
+                 * RSRQ
+                 */
+                return (rsrpIconLevel < rsrqIconLevel ? rsrpIconLevel : rsrqIconLevel);
+            }
+
+            if (rsrqIconLevel != -1) return rsrqIconLevel;
+
+            if (rsrpIconLevel != -1) return rsrpIconLevel;
+       }
 
         /* Valid values are (0-63, 99) as defined in TS 36.331 */
         // TODO the range here is probably supposed to be (0..31, 99). It's unclear if anyone relies
@@ -1210,8 +1269,8 @@ public class SignalStrength implements Parcelable {
     }
 
     /** Returns the signal strength related to GSM. */
-    private int getGsmRelatedSignalStrength() {
-        int level = getLteLevel();
+    private int getGsmRelatedSignalStrength(boolean ignoreRSSNR) {
+        int level = getLteLevel(ignoreRSSNR);
         if (level == SIGNAL_STRENGTH_NONE_OR_UNKNOWN) {
             level = getTdScdmaLevel();
             if (level == SIGNAL_STRENGTH_NONE_OR_UNKNOWN) {

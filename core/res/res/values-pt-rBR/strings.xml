@@ -1885,5 +1885,11 @@
     <string name="notification_appops_camera_active" msgid="5050283058419699771">"Câmera"</string>
     <string name="notification_appops_microphone_active" msgid="4335305527588191730">"Microfone"</string>
     <string name="notification_appops_overlay_active" msgid="633813008357934729">"exibindo sobre outros apps na sua tela"</string>
+
     <string name="car_loading_profile" msgid="3545132581795684027">"Carregando"</string>
+    <!-- [CHAR LIMIT=NONE] Title of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
+    <string name="permlab_accessFontManager">Acessar gerenciador de fontes</string>
+    <!-- [CHAR LIMIT=NONE] Description of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
+    <string name="permdesc_accessFontManager">Permite que um aplicativo acesse o gerenciador de fontes.</string>
+
 </resources>
