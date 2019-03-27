@@ -4627,9 +4627,6 @@ public final class Settings {
         public static final String PULSE_LAVALAMP_SOLID_SPEED = "lava_lamp_solid_speed";
 
         /** @hide */
-        public static final String IGNORE_RSSNR = "ignore_rssnr";        
-
-        /** @hide */
         public static final String AUDIO_PANEL_VIEW_NOTIFICATION = "audio_panel_view_notification";
 
         /** @hide */
@@ -4637,7 +4634,7 @@ public final class Settings {
 
         /** @hide */
         public static final String AUDIO_PANEL_VIEW_BT_SCO = "audio_panel_view_bt_sco";
-
+        
         /**
          * Pulse Solid units count
          * @hide
