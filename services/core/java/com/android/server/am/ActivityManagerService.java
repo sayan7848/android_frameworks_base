@@ -631,6 +631,8 @@ public class ActivityManagerService extends IActivityManager.Stub
     // as one line, but close enough for now.
     static final int RESERVED_BYTES_PER_LOGCAT_LINE = 100;
 
+    static final String PROP_REFRESH_THEME = "sys.refresh_theme";
+
     /** If a UID observer takes more than this long, send a WTF. */
     private static final int SLOW_UID_OBSERVER_THRESHOLD_MS = 20;
 
@@ -1942,6 +1944,9 @@ public class ActivityManagerService extends IActivityManager.Stub
     static final int SERVICE_FOREGROUND_CRASH_MSG = 69;
     static final int DISPATCH_OOM_ADJ_OBSERVER_MSG = 70;
 
+    static final int POST_PRIVACY_NOTIFICATION_MSG = 90;
+    static final int CANCEL_PRIVACY_NOTIFICATION_MSG = 91;
+
     static final int FIRST_ACTIVITY_STACK_MSG = 100;
     static final int FIRST_BROADCAST_QUEUE_MSG = 200;
     static final int FIRST_COMPAT_MODE_MSG = 300;
@@ -2569,6 +2574,67 @@ public class ActivityManagerService extends IActivityManager.Stub
                 // it is finished we make sure it is reset to its default.
                 mUserIsMonkey = false;
             } break;
+            case POST_PRIVACY_NOTIFICATION_MSG: {
+                INotificationManager inm = NotificationManager.getService();
+                if (inm == null) {
+                    return;
+                }
+
+                ActivityRecord root = (ActivityRecord) msg.obj;
+                ProcessRecord process = root.app;
+                if (process == null) {
+                    return;
+                }
+
+                try {
+                    Context context = mContext.createPackageContext(process.info.packageName, 0);
+                    String text = mContext.getString(R.string.privacy_guard_notification_detail,
+                            context.getApplicationInfo().loadLabel(context.getPackageManager()));
+                    String title = mContext.getString(R.string.privacy_guard_notification);
+
+                    Intent infoIntent = new Intent(Settings.ACTION_APP_OPS_DETAILS_SETTINGS,
+                            Uri.fromParts("package", root.packageName, null));
+
+                    Notification.Builder builder = new Notification.Builder(mContext,
+                            SystemNotificationChannels.SECURITY);
+                    builder.setSmallIcon(com.android.internal.R.drawable.stat_notify_privacy_guard)
+                            .setOngoing(true)
+                            .setPriority(Notification.PRIORITY_LOW)
+                            .setContentTitle(title)
+                            .setContentText(text)
+                            .setContentIntent(PendingIntent.getActivityAsUser(mContext, 0,
+                                    infoIntent, PendingIntent.FLAG_CANCEL_CURRENT, null,
+                                    new UserHandle(root.userId)));
+                    Notification notification = builder.build();
+
+                    try {
+                        int[] outId = new int[1];
+                        inm.enqueueNotificationWithTag("android", "android", null,
+                                R.string.privacy_guard_notification,
+                                notification, root.userId);
+                    } catch (RuntimeException e) {
+                        Slog.w(ActivityManagerService.TAG,
+                                "Error showing notification for privacy guard", e);
+                    } catch (RemoteException e) {
+                    }
+                } catch (NameNotFoundException e) {
+                    Slog.w(TAG, "Unable to create context for privacy guard notification", e);
+                }
+            } break;
+            case CANCEL_PRIVACY_NOTIFICATION_MSG: {
+                INotificationManager inm = NotificationManager.getService();
+                if (inm == null) {
+                    return;
+                }
+                try {
+                    inm.cancelNotificationWithTag("android", null,
+                            R.string.privacy_guard_notification,  msg.arg1);
+                } catch (RuntimeException e) {
+                    Slog.w(ActivityManagerService.TAG,
+                            "Error canceling notification for service", e);
+                } catch (RemoteException e) {
+                }
+            } break;
             case IDLE_UIDS_MSG: {
                 idleUids();
             } break;
@@ -3026,7 +3092,7 @@ public class ActivityManagerService extends IActivityManager.Stub
         mActivityStartController = null;
         mAppErrors = null;
         mAppWarnings = null;
-        mAppOpsService = mInjector.getAppOpsService(null, null);
+        mAppOpsService = mInjector.getAppOpsService(null, null, this);
         mBatteryStatsService = null;
         mCompatModePackages = null;
         mConstants = null;
@@ -3118,7 +3184,8 @@ public class ActivityManagerService extends IActivityManager.Stub
 
         mProcessStats = new ProcessStatsService(this, new File(systemDir, "procstats"));
 
-        mAppOpsService = mInjector.getAppOpsService(new File(systemDir, "appops.xml"), mHandler);
+        mAppOpsService = mInjector.getAppOpsService(new File(systemDir, "appops.xml"), mHandler,
+                this);
 
         mGrantFile = new AtomicFile(new File(systemDir, "urigrants.xml"), "uri-grants");
 
@@ -4350,6 +4417,13 @@ public class ActivityManagerService extends IActivityManager.Stub
                 runtimeFlags |= policyBits;
             }
 
+			// Check if zygote should refresh its fonts
+            boolean refreshTheme = false;
+            if (SystemProperties.getBoolean(PROP_REFRESH_THEME, false)) {
+                SystemProperties.set(PROP_REFRESH_THEME, "false");
+                refreshTheme = true;
+            }
+
             String invokeWith = null;
             if ((app.info.flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
                 // Debuggable apps may include a wrapper script with their library directory.
@@ -4391,7 +4465,7 @@ public class ActivityManagerService extends IActivityManager.Stub
             final String entryPoint = "android.app.ActivityThread";
 
             return startProcessLocked(hostingType, hostingNameStr, entryPoint, app, uid, gids,
-                    runtimeFlags, mountExternal, seInfo, requiredAbi, instructionSet, invokeWith,
+                    runtimeFlags, mountExternal, seInfo, requiredAbi, instructionSet, invokeWith, refreshTheme,
                     startTime);
         } catch (RuntimeException e) {
             Slog.e(TAG, "Failure starting process " + app.processName, e);
@@ -4411,7 +4485,7 @@ public class ActivityManagerService extends IActivityManager.Stub
     @GuardedBy("this")
     private boolean startProcessLocked(String hostingType, String hostingNameStr, String entryPoint,
             ProcessRecord app, int uid, int[] gids, int runtimeFlags, int mountExternal,
-            String seInfo, String requiredAbi, String instructionSet, String invokeWith,
+            String seInfo, String requiredAbi, String instructionSet, String invokeWith, boolean refreshTheme,
             long startTime) {
         app.pendingStart = true;
         app.killedByAm = false;
@@ -4438,7 +4512,7 @@ public class ActivityManagerService extends IActivityManager.Stub
                     }
                     final ProcessStartResult startResult = startProcess(app.hostingType, entryPoint,
                             app, app.startUid, gids, runtimeFlags, mountExternal, app.seInfo,
-                            requiredAbi, instructionSet, invokeWith, app.startTime);
+                            requiredAbi, instructionSet, invokeWith, refreshTheme, app.startTime);
                     synchronized (ActivityManagerService.this) {
                         handleProcessStartedLocked(app, startResult, startSeq);
                     }
@@ -4458,7 +4532,7 @@ public class ActivityManagerService extends IActivityManager.Stub
             try {
                 final ProcessStartResult startResult = startProcess(hostingType, entryPoint, app,
                         uid, gids, runtimeFlags, mountExternal, seInfo, requiredAbi, instructionSet,
-                        invokeWith, startTime);
+                        invokeWith, refreshTheme, startTime);
                 handleProcessStartedLocked(app, startResult.pid, startResult.usingWrapper,
                         startSeq, false);
             } catch (RuntimeException e) {
@@ -4475,7 +4549,7 @@ public class ActivityManagerService extends IActivityManager.Stub
     private ProcessStartResult startProcess(String hostingType, String entryPoint,
             ProcessRecord app, int uid, int[] gids, int runtimeFlags, int mountExternal,
             String seInfo, String requiredAbi, String instructionSet, String invokeWith,
-            long startTime) {
+            boolean refreshTheme, long startTime) {
         try {
             Trace.traceBegin(Trace.TRACE_TAG_ACTIVITY_MANAGER, "Start proc: " +
                     app.processName);
@@ -4485,13 +4559,13 @@ public class ActivityManagerService extends IActivityManager.Stub
                 startResult = startWebView(entryPoint,
                         app.processName, uid, uid, gids, runtimeFlags, mountExternal,
                         app.info.targetSdkVersion, seInfo, requiredAbi, instructionSet,
-                        app.info.dataDir, null,
+                        app.info.dataDir, null, true,
                         new String[] {PROC_START_SEQ_IDENT + app.startSeq});
             } else {
                 startResult = Process.start(entryPoint,
                         app.processName, uid, uid, gids, runtimeFlags, mountExternal,
                         app.info.targetSdkVersion, seInfo, requiredAbi, instructionSet,
-                        app.info.dataDir, invokeWith,
+                        app.info.dataDir, invokeWith, true,
                         new String[] {PROC_START_SEQ_IDENT + app.startSeq});
             }
             checkTime(startTime, "startProcess: returned from zygote!");
@@ -27227,8 +27301,9 @@ public class ActivityManagerService extends IActivityManager.Stub
             return null;
         }
 
-        public AppOpsService getAppOpsService(File file, Handler handler) {
-            return new AppOpsService(file, handler);
+        public AppOpsService getAppOpsService(File file, Handler handler,
+                ActivityManagerService service) {
+            return new AppOpsService(file, handler, service);
         }
 
         public Handler getUiHandler(ActivityManagerService service) {

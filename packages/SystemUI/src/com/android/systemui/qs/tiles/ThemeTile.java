@@ -364,8 +364,9 @@ public class ThemeTile extends QSTileImpl<BooleanState> {
 
     @Override
     public boolean isAvailable() {
-        String SUBS_PACKAGE = "projekt.substratum";
-        return !Utils.isPackageInstalled(mContext, SUBS_PACKAGE);
+        //String SUBS_PACKAGE = "projekt.substratum";
+        //return !Utils.isPackageInstalled(mContext, SUBS_PACKAGE);
+        return true;
     }
 
     @Override
